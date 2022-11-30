@@ -1,0 +1,23 @@
+[project]
+protostar-version = "0.8.1"
+lib-path = "lib"
+
+["protostar.shared_command_configs"]
+cairo-path = ["lib/cairo_contracts/src", "lib/cairopen_contracts/src"]
+
+[contracts]
+main = ["src/ERC3525.cairo"]
+ERC3525_original = [
+    "src/ERC3525.cairo",
+]
+
+
+[profile.devnet.project]
+gateway-url="http://127.0.0.1:5050/"
+chain-id=1536727068981429685321
+
+
+
+[profile.testnet.protostar.project]
+network="testnet"
+
