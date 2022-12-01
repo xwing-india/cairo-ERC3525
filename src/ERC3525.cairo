@@ -31,28 +31,45 @@ func ApprovalValue(_tokenId: Uint256, _operator: felt, _value: Uint256) {
 @event
 func SlotChanged(_tokenId: Uint256, _oldSlot: Uint256, _newSlot: Uint256) {
 }
+//from ERC721
+@event
+func Transfer(from_: felt, to: felt, tokenId: Uint256) {
+}
+
+@event
+func Approval(owner: felt, approved: felt, tokenId: Uint256) {
+}
+
+@event
+func ApprovalForAll(owner: felt, operator: felt, approved: felt) {
+}
 
 
 // struct
-struct TokenData {
-        id: Uint256;
-        slot: Uint256;
-        balance: Uint256;
-        owner: felt;
-        approved: felt;
-        valueApprovals: felt*;
+struct ApproveData {
+        approvals: felt,
+        mapping(address => uint256) allowances;
     }
 
-struct AddressData {
-    ownedTokens: felt*;
-    //implement this
-    mapping(uint256 => uint256) ownedTokensIndex;
-    mapping(address => bool) approvals;
-}
 
 //
 // Storage
 //
+//ERC3525 new ones
+//values
+@storage_var
+func ERC3525_values(token_id: Uint256) -> (values: Uint256) {
+}
+
+@storage_var
+func ERC3525_approvedValues(token_id: Uint256) -> (approvedValues: ApproveData) {
+}
+
+@storage_var
+func ERC3525_slots(token_id: Uint256) -> (slot: Uint256) {
+}
+
+//from ERC721
 // Token name
 @storage_var
 func ERC3525_name() -> (name: felt) {
@@ -75,26 +92,18 @@ func ERC3525_owners(token_id: Uint256) -> (owner: felt) {
 @storage_var
 func ERC3525_balances(account: felt) -> (balance: Uint256) {
 }
-// Mapping from token ID to approved address
-@storage_var
-func ERC3525_approved_values(token_id: Uint256, owner: felt) -> (approved: felt) {
-}
-
-//TokenData[] private _allTokens;
-@storage_var
-func ERC3525_allTokens() -> (TokenData: *TokenData) {
-}
-
 
 @storage_var
-func ERC3525_allTokenIndex(key: Uint256) -> (id: Uint256) {
+func ERC721_token_approvals(token_id: Uint256) -> (approved: felt) {
 }
 
-//  mapping(address => AddressData) private _addressData;
 @storage_var
-func ERC3525_addressData(account: felt) -> AddressData: AddressData) {
+func ERC721_operator_approvals(owner: felt, operator: felt) -> (is_approved: felt) {
 }
 
+@storage_var
+func ERC721_token_uri(token_id: Uint256) -> (token_uri: felt) {
+}
 
 
 
