@@ -16,6 +16,9 @@ from openzeppelin.utils.constants.library import (
 )
 from extentions import (IERC3525, IERC3525Receiver, IERC3525Metadata)
 
+//Implemented from  https://github.com/ethereum/EIPs/blob/master/assets/eip-3525/contracts/ERC3525.sol
+
+
 //
 // Events
 //
@@ -45,11 +48,14 @@ func ApprovalForAll(owner: felt, operator: felt, approved: felt) {
 }
 
 
-// struct
-struct ApproveData {
-        approvals: felt,
-        mapping(address => uint256) allowances;
-    }
+// struct ApproveData into cairo
+@storage_var
+func ERC3525_ApproveAddress() -> (approvals: felt*) {
+}
+
+@storage_var
+func ERC3525_allowances(approval: felt) -> (allowances: Uint256) {
+}
 
 
 //
@@ -94,15 +100,15 @@ func ERC3525_balances(account: felt) -> (balance: Uint256) {
 }
 
 @storage_var
-func ERC721_token_approvals(token_id: Uint256) -> (approved: felt) {
+func ERC3525_token_approvals(token_id: Uint256) -> (approved: felt) {
 }
 
 @storage_var
-func ERC721_operator_approvals(owner: felt, operator: felt) -> (is_approved: felt) {
+func ER3525_operator_approvals(owner: felt, operator: felt) -> (is_approved: felt) {
 }
 
 @storage_var
-func ERC721_token_uri(token_id: Uint256) -> (token_uri: felt) {
+func ERC3525_token_uri(token_id: Uint256) -> (token_uri: felt) {
 }
 
 
