@@ -469,6 +469,7 @@ namespace ERC3525 {
     //     return ();
     // }
 
+    //TBD
     func _mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
         to: felt, token_id: Uint256
     ) {
@@ -508,6 +509,8 @@ namespace ERC3525 {
     //     return ();
     // }
 
+
+    //TBD
     func _burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(token_id: Uint256) {
         alloc_locals;
         with_attr error_message("ERC721: token_id is not a valid Uint256") {
@@ -566,5 +569,4 @@ func _check_onERC721Received{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     let (is_account) = IERC165.supportsInterface(to, IACCOUNT_ID);
     return (success=is_account);
 }
-Footer
 
