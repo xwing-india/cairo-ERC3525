@@ -8,6 +8,7 @@ from openzeppelin.introspection.erc165.library import ERC165
 from openzeppelin.introspection.erc165.IERC165 import IERC165
 from openzeppelin.security.safemath.library import SafeUint256
 from openzeppelin.token.erc721.IERC721Receiver import IERC721Receiver
+from openzeppelin.token.erc721.library import ERC721
 from openzeppelin.utils.constants.library import (
     IERC721_ID,
     IERC721_METADATA_ID,
@@ -290,7 +291,7 @@ namespace ERC3525 {
         }
     }
 
-    
+    //TBD
     func transfer_from{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
             from_token_id: Uint256, to: felt, value: Uint256
     ) {
@@ -314,7 +315,7 @@ namespace ERC3525 {
         return ();
     }
 
-
+    //TBD
     func set_approval_for_all{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         operator: felt, approved: felt
     ) {
@@ -349,7 +350,7 @@ namespace ERC3525 {
     //
     // Internals
     //
-
+    //TBD
     func assert_only_token_owner{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
         token_id: Uint256
     ) {
@@ -457,21 +458,19 @@ namespace ERC3525 {
         return ();
     }
 
-    // func _safe_transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    //     from_: felt, to: felt, token_id: Uint256, data_len: felt, data: felt*
-    // ) {
-    //     _transfer(from_, to, token_id);
+    
+    func _mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
+        to: felt, token_id: Uint256, slot: Uint256
+    ) {
+        ERC721._mint(to, token_id);
+        ERC3525_slots.write(token_id, slot);
+        SlotChanged.emit(token_id, 0, slot);
 
-    //     let (success) = _check_onERC3525Received(from_, to, token_id, data_len, data);
-    //     with_attr error_message("ERC3525: transfer to non ERC3525Receiver implementer") {
-    //         assert_not_zero(success);
-    //     }
-    //     return ();
-    // }
+    }
 
     //TBD
-    func _mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-        to: felt, token_id: Uint256
+    func _mintValue{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
+        to: felt, token_id: Uint256, slot: Uint256
     ) {
         with_attr error_message("ERC3525: token_id is not a valid Uint256") {
             uint256_check(token_id);
