@@ -27,4 +27,14 @@ namespace IERC3525 {
 
     func isApprovedForAll(owner: felt, operator: felt) -> (is_approved: felt) {
     }
+
+    //from ERC721Enumerable 
+    // func totalSupply() -> (totalSupply: Uint256) {
+    // }
+
+    // func tokenByIndex(index: Uint256) -> (tokenId: Uint256) {
+    // }
+
+    // func tokenOfOwnerByIndex(owner: felt, index: Uint256) -> (tokenId: Uint256) {
+    }
 }

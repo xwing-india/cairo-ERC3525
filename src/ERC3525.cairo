@@ -48,16 +48,6 @@ func ApprovalForAll(owner: felt, operator: felt, approved: felt) {
 }
 
 
-// struct ApproveData into cairo
-@storage_var
-func ERC3525_ApproveAddress() -> (approvals: felt*) {
-}
-
-@storage_var
-func ERC3525_allowances(approval: felt) -> (allowances: Uint256) {
-}
-
-
 //
 // Storage
 //
@@ -67,12 +57,26 @@ func ERC3525_allowances(approval: felt) -> (allowances: Uint256) {
 func ERC3525_values(token_id: Uint256) -> (values: Uint256) {
 }
 
+// struct ApproveData into cairo
+// struct ApproveData {
+//         address[] approvals;
+//         mapping(address => uint256) allowances;
+//     }
+
 @storage_var
-func ERC3525_approvedValues(token_id: Uint256) -> (approvedValues: ApproveData) {
+func ERC3525_approvals(token_id: Uint256) -> (approvals: felt*) {
+}
+
+@storage_var
+func ERC3525_allowances(approval: felt, token_id: Uint256) -> (allowances: Uint256) {
 }
 
 @storage_var
 func ERC3525_slots(token_id: Uint256) -> (slot: Uint256) {
+}
+
+@storage_var
+func ERC3525_slot_uri(slot: Uint256) -> (slot_uri: felt) {
 }
 
 //from ERC721
@@ -121,12 +125,14 @@ namespace ERC3525 {
     //
 
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        name: felt, symbol: felt
+        name: felt, symbol: felt, decimals: Uint8
     ) {
-        ERC721_name.write(name);
-        ERC721_symbol.write(symbol);
-        ERC165.register_interface(IERC721_ID);
-        ERC165.register_interface(IERC721_METADATA_ID);
+        ERC3525_name.write(name);
+        ERC3525_symbol.write(symbol);
+        ERC3525_decimals.write(decimals);
+
+        ERC165.register_interface(IERC3525_ID);
+        ERC165.register_interface(IERC3525_METADATA_ID);
         return ();
     }
 
@@ -134,33 +140,68 @@ namespace ERC3525 {
     // Getters
     //
 
+    //new in ERC3525
+    func valueDecimals{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (decimals: Uint8) {
+        return ERC3525_decimals.read();
+    }   
+
+    func values{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        token_id: Uint256
+    ) -> (values: Uint256) {
+        with_attr error_message("ERC3525: value query for the zero token_id") {
+            assert_not_zero(token_id);
+        }
+        return ERC3525_values.read(token_id);
+    }
+
+    func slotOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        token_id: Uint256
+    ) -> (slot: Uint256) {
+        with_attr error_message("ERC3525: slot query for the zero token_id") {
+            assert_not_zero(token_id);
+        }
+        return ERC3525_slots.read(token_id);
+    }
+
+ 
+    func allowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        operator: felt, token_id: Uint256
+    ) -> (allowance: Uint256) {
+        with_attr error_message("ERC3525: allowance query for the zero token id") {
+            assert_not_zero(token_id);
+        }
+        return ERC3525_allowances.read(operator, token_id);
+    }
+
+
+    //from ERC721
     func name{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (name: felt) {
-        return ERC721_name.read();
+        return ERC3525_name.read();
     }
 
     func symbol{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
         symbol: felt
     ) {
-        return ERC721_symbol.read();
-    }
+        return ERC3525_symbol.read();
+    }     
 
     func balance_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         owner: felt
     ) -> (balance: Uint256) {
-        with_attr error_message("ERC721: balance query for the zero address") {
+        with_attr error_message("ERC3525: balance query for the zero address") {
             assert_not_zero(owner);
         }
-        return ERC721_balances.read(owner);
+        return ERC3525_balances.read(owner);
     }
 
     func owner_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256
     ) -> (owner: felt) {
-        with_attr error_message("ERC721: token_id is not a valid Uint256") {
+        with_attr error_message("ERC3525: token_id is not a valid Uint256") {
             uint256_check(token_id);
         }
         let (owner) = ERC721_owners.read(token_id);
-        with_attr error_message("ERC721: owner query for nonexistent token") {
+        with_attr error_message("ERC3525: owner query for nonexistent token") {
             assert_not_zero(owner);
         }
         return (owner=owner);
@@ -169,11 +210,11 @@ namespace ERC3525 {
     func get_approved{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256
     ) -> (approved: felt) {
-        with_attr error_message("ERC721: token_id is not a valid Uint256") {
+        with_attr error_message("ERC3525: token_id is not a valid Uint256") {
             uint256_check(token_id);
         }
         let exists = _exists(token_id);
-        with_attr error_message("ERC721: approved query for nonexistent token") {
+        with_attr error_message("ERC3525: approved query for nonexistent token") {
             assert exists = TRUE;
         }
 
@@ -183,19 +224,19 @@ namespace ERC3525 {
     func is_approved_for_all{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         owner: felt, operator: felt
     ) -> (is_approved: felt) {
-        return ERC721_operator_approvals.read(owner, operator);
+        return ERC3525_operator_approvals.read(owner, operator);
     }
 
     func token_uri{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token_id: Uint256
     ) -> (token_uri: felt) {
         let exists = _exists(token_id);
-        with_attr error_message("ERC721_Metadata: URI query for nonexistent token") {
+        with_attr error_message("ERC3525_Metadata: URI query for nonexistent token") {
             assert exists = TRUE;
         }
 
         // if tokenURI is not set, it will return 0
-        return ERC721_token_uri.read(token_id);
+        return ERC3525_token_uri.read(token_id);
     }
 
     //
