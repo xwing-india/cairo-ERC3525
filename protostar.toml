@@ -3,7 +3,7 @@ protostar-version = "0.8.1"
 lib-path = "lib"
 
 ["protostar.shared_command_configs"]
-cairo-path = ["lib/cairo_contracts/src", "lib/cairopen_contracts/src"]
+cairo-path = ["lib/cairo_contracts/src", "lib/cairopen_contracts/src", "lib/extentins"]
 
 [contracts]
 main = ["src/ERC3525.cairo"]

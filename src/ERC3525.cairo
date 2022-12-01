@@ -40,12 +40,12 @@ struct TokenData {
         balance: Uint256;
         owner: felt;
         approved: felt;
-        // address[] valueApprovals;
-        valueApprovals: felt;
+        valueApprovals: felt*;
     }
 
 struct AddressData {
-    uint256[] ownedTokens;    
+    ownedTokens: felt*;
+    //implement this
     mapping(uint256 => uint256) ownedTokensIndex;
     mapping(address => bool) approvals;
 }
@@ -63,7 +63,7 @@ func ERC3525_symbol() -> (symbol: felt) {
 }
 
 @storage_var
-func ERC3525_decimals() -> (decimals: felt) {
+func ERC3525_decimals() -> (decimals: Uint8) {
 }
 
 
@@ -81,10 +81,18 @@ func ERC3525_approved_values(token_id: Uint256, owner: felt) -> (approved: felt)
 }
 
 //TokenData[] private _allTokens;
+@storage_var
+func ERC3525_allTokens() -> (TokenData: *TokenData) {
+}
 
 
 @storage_var
 func ERC3525_allTokenIndex(key: Uint256) -> (id: Uint256) {
+}
+
+//  mapping(address => AddressData) private _addressData;
+@storage_var
+func ERC3525_addressData(account: felt) -> AddressData: AddressData) {
 }
 
 
