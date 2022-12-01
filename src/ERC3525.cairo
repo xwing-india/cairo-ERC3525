@@ -68,7 +68,7 @@ func ERC3525_approvals(token_id: Uint256) -> (approvals: felt*) {
 }
 
 @storage_var
-func ERC3525_allowances(approval: felt, token_id: Uint256) -> (allowances: Uint256) {
+func ERC3525_approvedValues(token_id: Uint256, approval: felt) -> (allowances: Uint256) {
 }
 
 @storage_var
@@ -103,13 +103,13 @@ func ERC3525_owners(token_id: Uint256) -> (owner: felt) {
 func ERC3525_balances(account: felt) -> (balance: Uint256) {
 }
 
-@storage_var
-func ERC3525_token_approvals(token_id: Uint256) -> (approved: felt) {
-}
+// @storage_var
+// func ERC3525_token_approvals(token_id: Uint256) -> (approved: felt) {
+// }
 
-@storage_var
-func ER3525_operator_approvals(owner: felt, operator: felt) -> (is_approved: felt) {
-}
+// @storage_var
+// func ER3525_operator_approvals(owner: felt, operator: felt) -> (is_approved: felt) {
+// }
 
 @storage_var
 func ERC3525_token_uri(token_id: Uint256) -> (token_uri: felt) {
@@ -171,6 +171,19 @@ namespace ERC3525 {
             assert_not_zero(token_id);
         }
         return ERC3525_allowances.read(operator, token_id);
+    }
+
+    
+    func slot_uri{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        slot: Uint256
+    ) -> (slot_uri: felt) {
+        let exists = _exists(slot);
+        with_attr error_message("ERC3525_Metadata: URI query for nonexistent slot") {
+            assert exists = TRUE;
+        }
+
+        // if slotURI is not set, it will return 0
+        return ERC3525_slot_uri.read(slot);
     }
 
 
@@ -244,38 +257,63 @@ namespace ERC3525 {
     //
 
     func approve{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-        to: felt, token_id: Uint256
+        token_id: Uint256, to: felt, value: Uint256
     ) {
-        with_attr error_mesage("ERC721: token_id is not a valid Uint256") {
+        with_attr error_mesage("ERC3525: token_id is not a valid Uint256") {
             uint256_check(token_id);
         }
 
         // Checks caller is not zero address
         let (caller) = get_caller_address();
-        with_attr error_message("ERC721: cannot approve from the zero address") {
+        with_attr error_message("ERC3525: cannot approve from the zero address") {
             assert_not_zero(caller);
         }
 
         // Ensures 'owner' does not equal 'to'
-        let (owner) = ERC721_owners.read(token_id);
-        with_attr error_message("ERC721: approval to current owner") {
+        let (owner) = ERC3525_owners.read(token_id);
+        with_attr error_message("ERC3525: approval to current owner") {
             assert_not_equal(owner, to);
         }
 
         // Checks that either caller equals owner or
         // caller isApprovedForAll on behalf of owner
         if (caller == owner) {
-            _approve(to, token_id);
+            _approve(token_id, to, value);
             return ();
         } else {
-            let (is_approved) = ERC721_operator_approvals.read(owner, caller);
-            with_attr error_message("ERC721: approve caller is not owner nor approved for all") {
+            let (is_approved) = ERC3525_operator_approvals.read(owner, caller);
+            with_attr error_message("ERC3525: approve caller is not owner nor approved for all") {
                 assert_not_zero(is_approved);
             }
-            _approve(to, token_id);
+            _approve(token_id, to, value);
             return ();
         }
     }
+
+    
+    func transfer_from{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
+            from_token_id: Uint256, to: felt, value: Uint256
+    ) {
+        alloc_locals;
+        with_attr error_message("ERC721: token_id is not a valid Uint256") {
+            uint256_check(token_id);
+        }
+        let (caller) = get_caller_address();
+        let is_approved = _is_approved_or_owner(caller, token_id);
+        with_attr error_message(
+                "ERC721: either is not approved or the caller is the zero address") {
+            assert_not_zero(caller * is_approved);
+        }
+        // Note that if either `is_approved` or `caller` equals `0`,
+        // then this method should fail.
+        // The `caller` address and `is_approved` boolean are both field elements
+        // meaning that a*0==0 for all a in the field,
+        // therefore a*b==0 implies that at least one of a,b is zero in the field
+
+        _transfer(from_, to, token_id);
+        return ();
+    }
+
 
     func set_approval_for_all{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         operator: felt, approved: felt
@@ -305,51 +343,8 @@ namespace ERC3525 {
         return ();
     }
 
-    func transfer_from{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-        from_: felt, to: felt, token_id: Uint256
-    ) {
-        alloc_locals;
-        with_attr error_message("ERC721: token_id is not a valid Uint256") {
-            uint256_check(token_id);
-        }
-        let (caller) = get_caller_address();
-        let is_approved = _is_approved_or_owner(caller, token_id);
-        with_attr error_message(
-                "ERC721: either is not approved or the caller is the zero address") {
-            assert_not_zero(caller * is_approved);
-        }
-        // Note that if either `is_approved` or `caller` equals `0`,
-        // then this method should fail.
-        // The `caller` address and `is_approved` boolean are both field elements
-        // meaning that a*0==0 for all a in the field,
-        // therefore a*b==0 implies that at least one of a,b is zero in the field
-
-        _transfer(from_, to, token_id);
-        return ();
-    }
-
-    func safe_transfer_from{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-        from_: felt, to: felt, token_id: Uint256, data_len: felt, data: felt*
-    ) {
-        alloc_locals;
-        with_attr error_message("ERC721: token_id is not a valid Uint256") {
-            uint256_check(token_id);
-        }
-        let (caller) = get_caller_address();
-        let is_approved = _is_approved_or_owner(caller, token_id);
-        with_attr error_message(
-                "ERC721: either is not approved or the caller is the zero address") {
-            assert_not_zero(caller * is_approved);
-        }
-        // Note that if either `is_approved` or `caller` equals `0`,
-        // then this method should fail.
-        // The `caller` address and `is_approved` boolean are both field elements
-        // meaning that a*0==0 for all a in the field,
-        // therefore a*b==0 implies that at least one of a,b is zero in the field
-
-        _safe_transfer(from_, to, token_id, data_len, data);
-        return ();
-    }
+    
+    
 
     //
     // Internals
@@ -408,57 +403,71 @@ namespace ERC3525 {
     }
 
     func _approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        to: felt, token_id: Uint256
+        token_id: Uint256, to: felt, value: Uint256
     ) {
-        ERC721_token_approvals.write(token_id, to);
-        let (owner) = owner_of(token_id);
-        Approval.emit(owner, to, token_id);
+        ERC3525_approvals.write(token_id, to);
+        ERC3525_approvedValues.write(token_id, to, value);
+        // let (owner) = owner_of(token_id);
+        ApprovalValue.emit(token_id, to, value);
         return ();
     }
 
     func _transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        from_: felt, to: felt, token_id: Uint256
+        _fromTokenId: Uint256, _toTokenId: Uint256, value: Uint256
     ) {
-        // ownerOf ensures 'from_' is not the zero address
-        let (owner) = owner_of(token_id);
-        with_attr error_message("ERC721: transfer from incorrect owner") {
-            assert owner = from_;
+        let exists_fromTokenId = _exists(_fromTokenId);
+        with_attr error_message("ERC3525: transfer from nonexistent token") {
+            assert exists = TRUE;
+        }
+        let exists_toTokenId = _exists(_toTokenId);
+        with_attr error_message("ERC3525: transfer to nonexistent token") {
+            assert exists = TRUE;
         }
 
-        with_attr error_message("ERC721: cannot transfer to the zero address") {
-            assert_not_zero(to);
+        let (fromToken_balance: Uint256) = ERC3525_values.read(_fromTokenId);
+        with_attr error_message("ERC3525: transfer amount exceeds balance") {
+            let (new_fromToken_balance: Uint256) = SafeUint256.sub_le(fromToken_balance, value);
         }
+
+        let (fromToken_slot: Uint256) = ERC3525_slots.read(_fromTokenId);
+        let (toToken_slot: Uint256) = ERC3525_slots.read(_toTokenId);
+        //check
+        with_attr error_message("ERC3535: transfer to token with different slot") {
+            let (new_slot: Uint256) = SafeUint256.sub_le(toToken_slot, fromToken_slot);
+        }
+
+        let (from_) = owner_of(_fromTokenId);
+        let (to) = owner_of(_toTokenId);
 
         // Clear approvals
-        _approve(0, token_id);
+        _approve(token_id, 0 , 0); 
 
         // Decrease owner balance
-        let (owner_bal) = ERC721_balances.read(from_);
-        let (new_balance: Uint256) = SafeUint256.sub_le(owner_bal, Uint256(1, 0));
-        ERC721_balances.write(from_, new_balance);
+        let (owner_bal) = ERC3525_balances.read(from_);
+        let (new_balance: Uint256) = SafeUint256.sub_le(owner_bal, value);
+        ERC3525_balances.write(from_, new_balance);
 
         // Increase receiver balance
-        let (receiver_bal) = ERC721_balances.read(to);
-        let (new_balance: Uint256) = SafeUint256.add(receiver_bal, Uint256(1, 0));
-        ERC721_balances.write(to, new_balance);
+        let (receiver_bal) = ERC3525_balances.read(to);
+        let (new_balance: Uint256) = SafeUint256.add(receiver_bal, value);
+        ERC3525_balances.write(to, new_balance);
 
-        // Update token_id owner
-        ERC721_owners.write(token_id, to);
-        Transfer.emit(from_, to, token_id);
+       
+        Transfer.emit( _fromTokenId, _toTokenId, value);
         return ();
     }
 
-    func _safe_transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        from_: felt, to: felt, token_id: Uint256, data_len: felt, data: felt*
-    ) {
-        _transfer(from_, to, token_id);
+    // func _safe_transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    //     from_: felt, to: felt, token_id: Uint256, data_len: felt, data: felt*
+    // ) {
+    //     _transfer(from_, to, token_id);
 
-        let (success) = _check_onERC721Received(from_, to, token_id, data_len, data);
-        with_attr error_message("ERC721: transfer to non ERC721Receiver implementer") {
-            assert_not_zero(success);
-        }
-        return ();
-    }
+    //     let (success) = _check_onERC721Received(from_, to, token_id, data_len, data);
+    //     with_attr error_message("ERC721: transfer to non ERC721Receiver implementer") {
+    //         assert_not_zero(success);
+    //     }
+    //     return ();
+    // }
 
     func _mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
         to: felt, token_id: Uint256
@@ -484,20 +493,20 @@ namespace ERC3525 {
         return ();
     }
 
-    func _safe_mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-        to: felt, token_id: Uint256, data_len: felt, data: felt*
-    ) {
-        with_attr error_message("ERC721: token_id is not a valid Uint256") {
-            uint256_check(token_id);
-        }
-        _mint(to, token_id);
+    // func _safe_mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
+    //     to: felt, token_id: Uint256, data_len: felt, data: felt*
+    // ) {
+    //     with_attr error_message("ERC721: token_id is not a valid Uint256") {
+    //         uint256_check(token_id);
+    //     }
+    //     _mint(to, token_id);
 
-        let (success) = _check_onERC721Received(0, to, token_id, data_len, data);
-        with_attr error_message("ERC721: transfer to non ERC721Receiver implementer") {
-            assert_not_zero(success);
-        }
-        return ();
-    }
+    //     let (success) = _check_onERC721Received(0, to, token_id, data_len, data);
+    //     with_attr error_message("ERC721: transfer to non ERC721Receiver implementer") {
+    //         assert_not_zero(success);
+    //     }
+    //     return ();
+    // }
 
     func _burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(token_id: Uint256) {
         alloc_locals;
@@ -516,7 +525,7 @@ namespace ERC3525 {
 
         // Delete owner
         ERC721_owners.write(token_id, 0);
-        Transfer.emit(owner, 0, token_id);
+        TransferValue.emit(from_token_id, to, token_id);
         return ();
     }
 
